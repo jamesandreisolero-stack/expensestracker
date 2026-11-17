@@ -19,10 +19,27 @@
     const [y, m, d] = str.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   }
+  // Escape text before putting it in HTML (including quotes, for attributes)
   function esc(text) {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Sample entries so the app can be demonstrated quickly
+  function sampleData() {
+    const rows = [
+      ['Lunch at canteen', 85, 'Food', 0], ['Jeepney fare', 24, 'Transport', 0],
+      ['Printing activity sheets', 40, 'School', 1], ['Load top-up', 100, 'Bills', 2],
+      ['Milk tea', 95, 'Food', 3], ['Notebook and pens', 150, 'School', 4],
+      ['Tricycle fare', 30, 'Transport', 5], ['Vitamins', 220, 'Health', 6]
+    ];
+    return rows.map(([description, amount, category, back], i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - back);
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return { id: Date.now() + i, description, amount, category, date: d.toISOString().slice(0, 10) };
+    });
   }
 
   /* ---------- storage ---------- */
@@ -123,7 +140,7 @@
               <div><div>${esc(e.description)}</div><div class="exp-meta">${esc(e.category)} | ${prettyDate(e.date)}</div></div>
               <div class="exp-amount">${peso(e.amount)}</div>
             </div>`).join('')
-        : '<p class="empty mb-0">No expenses yet. <a href="pages/add-expense.html">Add your first expense</a>.</p>';
+        : '<p class="empty mb-0">No expenses yet. <a href="pages/add-expense.html">Add your first expense</a> or <button type="button" class="btn btn-link p-0 align-baseline" id="loadSample">load sample data</button>.</p>';
     };
 
     // Budget form
@@ -143,6 +160,13 @@
       render();
     });
     input.addEventListener('input', () => input.setCustomValidity(''));
+
+    $('#recentList').addEventListener('click', (e) => {
+      if (e.target.id !== 'loadSample') return;
+      saveExpenses(sampleData());
+      if (!getBudget()) { saveBudget(3000); input.value = 3000; }
+      render();
+    });
 
     render();
   }
